@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js" integrity="sha512-u9akINsQsAkG9xjc1cnGF4zw5TFDwkxuc9vUp5dltDWYCSmyd0meygbvgXrlc/z7/o4a19Fb5V0OUE58J7dcyw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+    <title>Hangman game</title>
+</head>
+<body style ="background-color:rgb(134, 123, 123);"> 
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
+        <div class="container-fluid">
+            <style> 
+                body{
+                    font-family: 'Indie Flower', cursive;
+                }
+            </style>
+          <a style="color:red;font-size:40px;" class="navbar-brand" href="#">Hangman</a>
+          
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            </ul>
+            <input type="submit" style="color:azure;font-size:30px;" onclick="newgame()" class="btn btn-success" value="New game">
+          </div>
+        </div>
+      </nav>
+      <br><br>
+        <div class="container-fluid">
+          <div class="row">
+          <div class="col-sm" style="padding:100px;margin-left:60px;">
+          <input style ="background:transparent;font-size:38px;border:none;color:black;" id="display" disabled=true value="{{notGuessed}}">
+          <br><br>
+          <label style="color:black;font-size:36px;font-weight:Bold;width:360px;" for="input" class="form-label">Enter your guess here :</label>
+          <input style="border:6px outset#0a0500;font-size:34px;width:350px;" type="text" class="form-control" id="nextChar" maxlength="1" size="1">
+          <br>
+          <button style="font-size:22px;width:100px;" id="check" type="submit" class="btn btn-dark " onclick="check()">Submit</button>
+          <br><br>
+          <div style="font-size:30px;width:360px;" class="justify-content-center text-center" id="alert"></div>
+          </div>
+          <div class="col-sm">
+          <img id="hangImage" style="width:500px;height:500px;object-fit:cover;border: 5px solid rgb(44, 22, 81);" src={{url}} alt="image" > 
+          </div>
+        </div> 
+        </div>
+        <script>
+          function newgame(){
+            axios.post("{{url_for('check')}}",{type:'newgame'}).then(
+              window.location.assign("{{url_for('index')}}")  
+            )
+
+          }
+        </script>
+        <script>
+          function check(){
+            let value = document.getElementById("nextChar").value
+            console.log(value)
+            document.getElementById("nextChar").value = ""
+            axios.post("{{url_for('check')}}",{type:'check','input':value}).then(
+              async function(r){
+                if(r.data.type === 'gameover'){
+                  document.getElementById("check").disabled= true
+                  document.getElementById("hangImage").src=r.data.url
+                  document.getElementById("nextChar").disabled= true
+                  document.getElementById("display").value = r.data.correctWord
+                  document.getElementById('alert').innerHTML = `<div class="alert alert-danger" role="alert">
+                    <h3>Game Over🥴</h3>
+                  </div>`
+                }
+                else if(r.data.type === 'correct'){
+                  document.getElementById("display").value = r.data.foundWord
+                  document.getElementById('alert').innerHTML = `<div class="alert alert-success" role="alert">
+                    <h3>Correct guess!</h3>
+                  </div>`
+                  await new Promise(r => setTimeout(r, 3000));
+                  document.getElementById('alert').innerHTML = ``
+                }
+                else if(r.data.type === 'wrong'){
+                  let output = r.data.foundWord
+                  console.log(output)
+                  document.getElementById("hangImage").src=r.data.url
+                  document.getElementById('alert').innerHTML = `<div class="alert alert-danger" role="alert">
+                    <h3>Wrong guess ☹️, Attempts left : `+r.data.attempts+`</h3>
+                  </div>`
+                  await new Promise(r => setTimeout(r, 3000));
+                  document.getElementById('alert').innerHTML = ``
+                }
+                else if(r.data.type === 'win'){
+                  document.getElementById("display").value = r.data.foundWord
+                  document.getElementById('alert').innerHTML = `<div class="alert alert-success" role="alert">
+                    <h3>You win!😁</h3>
+                  </div>`
+                  await new Promise(r => setTimeout(r, 5000));
+                  document.getElementById('alert').innerHTML = ``
+                  document.getElementById("check").disabled= true
+                  document.getElementById("nextChar").disabled= true
+                }
+                else{
+                  document.getElementById('alert').innerHTML = `<div class="alert alert-warning" role="alert">
+                    <h3>`+r.data.foundWord+`</h3>
+                  </div>`
+                  await new Promise(r => setTimeout(r, 3000));
+                  document.getElementById('alert').innerHTML = ``
+                }
+              }
+            )
+          }
+        </script>
+      </body>
+</html>
